@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  monitoring-service-db:
+    image: postgres:16.0
+    container_name: chatUp-container
+    environment:
+      POSTGRES_DB: chatUp-db
+      POSTGRES_USER: rstd
+      POSTGRES_PASSWORD: pass
+    restart: always
+    volumes:
+      - chatUp-volume:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+volumes:
+  chatUp-volume:
