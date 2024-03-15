@@ -6,12 +6,15 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.rstd.chatupp.dto.CreateMessageDto;
 import ru.rstd.chatupp.dto.ReadMessageDto;
 import ru.rstd.chatupp.entity.Message;
+import ru.rstd.chatupp.entity.MessageStatus;
 import ru.rstd.chatupp.entity.PrivateRoom;
+import ru.rstd.chatupp.entity.UserPrivateRoomLastSeen;
 import ru.rstd.chatupp.exception.PrivateRoomNotFoundException;
 import ru.rstd.chatupp.exception.UserNotFoundException;
 import ru.rstd.chatupp.mapper.MessageMapper;
 import ru.rstd.chatupp.repository.MessageRepository;
 import ru.rstd.chatupp.repository.PrivateRoomRepository;
+import ru.rstd.chatupp.repository.UserPrivateRoomLastSeenRepository;
 import ru.rstd.chatupp.repository.UserRepository;
 
 import java.util.List;
@@ -25,6 +28,7 @@ public class MessageServiceImpl implements MessageService {
     private final MessageMapper messageMapper;
     private final UserRepository userRepository;
     private final PrivateRoomRepository privateRoomRepository;
+    private final UserPrivateRoomLastSeenRepository userPrivateRoomLastSeenRepository;
 
     @Override
     public ReadMessageDto save(CreateMessageDto createMessageDto) {
@@ -39,21 +43,38 @@ public class MessageServiceImpl implements MessageService {
                     .sender(maybeSender)
                     .recipient(maybeRecipient)
                     .build();
-            privateRoom = privateRoomRepository.save(privateRoomToSave);// TODO: 11.03.2024 check if id will be assigned
+            privateRoom = privateRoomRepository.saveAndFlush(privateRoomToSave);
         } else {
             privateRoom = privateRoomRepository.findById(Long.parseLong(createMessageDto.privateRoomId()))
                     .orElseThrow(() -> new PrivateRoomNotFoundException("there is no private room by such id"));
         }
-        var messageToSave = Message.builder()
-                .sender(maybeSender)
-                .recipient(maybeRecipient)
-                .privateRoom(privateRoom)
-                .payload(createMessageDto.payload())
-                .build();
+        var maybeUserPrivateRoomLastSeen = userPrivateRoomLastSeenRepository.findByUserIdAndPrivateRoomId(
+                        maybeSender.getId(), privateRoom.getId())
+                .orElseThrow(() -> new RuntimeException(""));
+
+        Message messageToSave = null;
+        if (maybeUserPrivateRoomLastSeen.getInRoom()) {
+            messageToSave = Message.builder()
+                    .sender(maybeSender)
+                    .recipient(maybeRecipient)
+                    .privateRoom(privateRoom)
+                    .payload(createMessageDto.payload())
+                    .messageStatus(MessageStatus.READ)
+                    .build();
+        } else {
+            messageToSave = Message.builder()
+                    .sender(maybeSender)
+                    .recipient(maybeRecipient)
+                    .privateRoom(privateRoom)
+                    .payload(createMessageDto.payload())
+                    .messageStatus(MessageStatus.UNREAD)
+                    .build();
+        }
         return messageMapper.toReadMessageDto(
                 messageRepository.save(messageToSave)
         );
     }
+
     @Override
     public List<ReadMessageDto> findAllByPrivateRoomId(Long id) {
         return messageRepository.findAllByPrivateRoomId(id)

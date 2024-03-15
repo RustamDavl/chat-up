@@ -30,4 +30,8 @@ public class Message {
     @ManyToOne
     @JoinColumn(name = "recipient_id")
     private User recipient;
+
+    @Column(name = "status")
+    @Enumerated(EnumType.STRING)
+    private MessageStatus messageStatus;
 }

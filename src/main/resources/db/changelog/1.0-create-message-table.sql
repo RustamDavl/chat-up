@@ -7,5 +7,6 @@ create table message
     private_room_id bigint references private_room (id) not null,
     payload         text                                not null,
     sender_id       bigint references users (id)        not null,
-    recipient_id    bigint references users (id)        not null
+    recipient_id    bigint references users (id)        not null,
+    status          varchar(6)                          not null
 );

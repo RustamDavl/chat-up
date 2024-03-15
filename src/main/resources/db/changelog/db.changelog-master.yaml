@@ -5,3 +5,5 @@ databaseChangeLog:
       file: db/changelog/1.0-create-private_room-table.sql
   - include:
       file: db/changelog/1.0-create-message-table.sql
+  - include:
+      file: db/changelog/1.0-create-user_private_room_last_seen-table.sql
