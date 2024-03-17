@@ -14,8 +14,9 @@ public class UserPrivateRoomLastSeenController {
 
     private final UserPrivateRoomLastSeenService userPrivateRoomLastSeenService;
 
+    //only for existed chat rooms
     @MessageMapping("/last-seen-event")
-    public void saveAndSendToQueue(@Payload @RequestBody UserPrivateRoomLastSeenEvent event) {
-        userPrivateRoomLastSeenService.create(event);
+    public void saveEvent(@Payload @RequestBody UserPrivateRoomLastSeenEvent event) {
+        userPrivateRoomLastSeenService.update(event);
     }
 }

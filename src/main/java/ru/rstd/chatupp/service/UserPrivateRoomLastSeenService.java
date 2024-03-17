@@ -4,5 +4,6 @@ import ru.rstd.chatupp.dto.UserPrivateRoomLastSeenEvent;
 import ru.rstd.chatupp.entity.UserPrivateRoomLastSeen;
 
 public interface UserPrivateRoomLastSeenService {
-    UserPrivateRoomLastSeen create(UserPrivateRoomLastSeenEvent event);
+    void update(UserPrivateRoomLastSeenEvent event);
+    void create(UserPrivateRoomLastSeen userPrivateRoomLastSeen);
 }

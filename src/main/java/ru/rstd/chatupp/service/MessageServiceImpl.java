@@ -19,6 +19,9 @@ import ru.rstd.chatupp.repository.UserRepository;
 
 import java.util.List;
 
+import static ru.rstd.chatupp.entity.MessageStatus.READ;
+import static ru.rstd.chatupp.entity.MessageStatus.UNREAD;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -27,8 +30,10 @@ public class MessageServiceImpl implements MessageService {
     private final MessageRepository messageRepository;
     private final MessageMapper messageMapper;
     private final UserRepository userRepository;
-    private final PrivateRoomRepository privateRoomRepository;
     private final UserPrivateRoomLastSeenRepository userPrivateRoomLastSeenRepository;
+    private final PrivateRoomService privateRoomService;
+
+    // TODO: 17.03.2024 change save method because of ... omg i want to cry..
 
     @Override
     public ReadMessageDto save(CreateMessageDto createMessageDto) {
@@ -37,29 +42,35 @@ public class MessageServiceImpl implements MessageService {
         var maybeRecipient = userRepository.findById(Long.parseLong(createMessageDto.recipientId()))
                 .orElseThrow(() -> new UserNotFoundException("there is no user with such id"));
 
-        PrivateRoom privateRoom = null;
+        PrivateRoom privateRoom;
         if (createMessageDto.privateRoomId() == null) {
-            var privateRoomToSave = PrivateRoom.builder()
-                    .sender(maybeSender)
-                    .recipient(maybeRecipient)
-                    .build();
-            privateRoom = privateRoomRepository.saveAndFlush(privateRoomToSave);
+            privateRoom = privateRoomService.create(maybeSender.getId(), maybeRecipient.getId());
+            userPrivateRoomLastSeenRepository.save(UserPrivateRoomLastSeen.builder()
+                    .user(maybeRecipient)
+                    .inRoom(false)
+                    .privateRoom(privateRoom)
+                    .build());
+            userPrivateRoomLastSeenRepository.save(UserPrivateRoomLastSeen.builder()
+                    .user(maybeSender)
+                    .inRoom(true)
+                    .privateRoom(privateRoom)
+                    .build());
         } else {
-            privateRoom = privateRoomRepository.findById(Long.parseLong(createMessageDto.privateRoomId()))
-                    .orElseThrow(() -> new PrivateRoomNotFoundException("there is no private room by such id"));
+            privateRoom = privateRoomService.findById(Long.parseLong(createMessageDto.privateRoomId()));
         }
+
         var maybeUserPrivateRoomLastSeen = userPrivateRoomLastSeenRepository.findByUserIdAndPrivateRoomId(
-                        maybeSender.getId(), privateRoom.getId())
+                        maybeRecipient.getId(), privateRoom.getId())
                 .orElseThrow(() -> new RuntimeException(""));
 
-        Message messageToSave = null;
-        if (maybeUserPrivateRoomLastSeen.getInRoom()) {
+        Message messageToSave;
+        if (!maybeUserPrivateRoomLastSeen.getInRoom()) {
             messageToSave = Message.builder()
                     .sender(maybeSender)
                     .recipient(maybeRecipient)
                     .privateRoom(privateRoom)
                     .payload(createMessageDto.payload())
-                    .messageStatus(MessageStatus.READ)
+                    .messageStatus(UNREAD)
                     .build();
         } else {
             messageToSave = Message.builder()
@@ -67,7 +78,7 @@ public class MessageServiceImpl implements MessageService {
                     .recipient(maybeRecipient)
                     .privateRoom(privateRoom)
                     .payload(createMessageDto.payload())
-                    .messageStatus(MessageStatus.UNREAD)
+                    .messageStatus(READ)
                     .build();
         }
         return messageMapper.toReadMessageDto(
@@ -82,4 +93,20 @@ public class MessageServiceImpl implements MessageService {
                 .map(messageMapper::toReadMessageDto)
                 .toList();
     }
+
+    @Override
+    public void updateStatusAsRead(Long privateRoomId, Long recipientId) {
+        messageRepository.findAllByPrivateRoomIdAndRecipientId(privateRoomId, recipientId)
+                .forEach(message -> {
+                    message.setMessageStatus(READ);
+                    messageRepository.save(message);
+                });
+    }
+
+    @Override
+    public Long getCountOfUnreadMessages(Long myId, Long privateRoomId) {
+        return messageRepository.getCountOfUnreadMessages(myId, privateRoomId);
+    }
+
+
 }

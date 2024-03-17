@@ -1,6 +1,7 @@
 package ru.rstd.chatupp.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -38,5 +39,13 @@ public class MessageController {
         return ResponseEntity.status(OK)
                 .contentType(APPLICATION_JSON)
                 .body(messageService.findAllByPrivateRoomId(id));
+    }
+
+    @GetMapping("/api/v1/messages/{privateRoomId}/last")
+    public ResponseEntity<Long> getCountOfUnreadMessages(@PathVariable("privateRoomId") Long id, @RequestParam("myId") Long myId) {
+        return ResponseEntity.status(OK)
+                .contentType(APPLICATION_JSON)
+                .body(messageService.getCountOfUnreadMessages(myId, id));
+
     }
 }
