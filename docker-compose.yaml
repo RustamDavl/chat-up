@@ -12,6 +12,11 @@ services:
       - chatUp-volume:/var/lib/postgresql/data
     ports:
       - "5433:5432"
+  monitoring-service-app:
+    image: rustamdavl/chat-up
+    container_name: chat-up-container
+    ports:
+      - "8080:8080"
 
 volumes:
   chatUp-volume:
