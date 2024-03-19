@@ -5,6 +5,5 @@ create table private_room
 (
     id           bigserial primary key,
     sender_id    bigint references users (id) not null,
-    recipient_id bigint references users (id) not null,
-    unique (sender_id, recipient_id)
+    recipient_id bigint references users (id) not null
 );

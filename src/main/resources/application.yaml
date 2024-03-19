@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5433/chatUp-db
+    url: jdbc:postgresql://localhost:5433/chatUp-features-db
     password: pass
     username: rstd
   jpa:
